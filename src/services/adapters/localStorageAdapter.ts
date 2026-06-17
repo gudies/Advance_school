@@ -1,4 +1,5 @@
 import { IBaseRepository } from '../repositories/baseRepository';
+import { pushToFirebase } from './firebaseSync';
 
 export class LocalStorageAdapter<T extends { id: string }> implements IBaseRepository<T> {
   private storageKey: string;
@@ -20,6 +21,8 @@ export class LocalStorageAdapter<T extends { id: string }> implements IBaseRepos
   private saveItems(items: T[]): void {
     try {
       localStorage.setItem(this.storageKey, JSON.stringify(items));
+      // Background sync to remote cloud database (non-blocking)
+      pushToFirebase(this.storageKey, items);
     } catch (error) {
       console.error(`Error saving to localStorage [${this.storageKey}]:`, error);
     }

@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from '../features/auth/pages/LoginPage';
 import DashboardLayout from '../components/layout/DashboardLayout';
@@ -18,8 +19,73 @@ import { CanteenDashboardPage, MenuPage, SalesPage, CanteenInventoryPage } from 
 import { AnnouncementsPage, MessagingPage, EventsPage } from '../features/communication';
 import { ToastContainer } from '../components/feedback/Toast';
 import { ConfirmationModal } from '../components/feedback/ConfirmationModal';
+import { isFirebaseConfigured, pullAndHydrateAll } from '../services/adapters/firebaseSync';
+
+const DB_KEYS = [
+  'advance_users',
+  'advance_students',
+  'advance_staff',
+  'advance_fee_structures',
+  'advance_payments',
+  'advance_staff_attendance',
+  'advance_assessments',
+  'advance_exam_results',
+  'advance_student_attendance',
+  'advance_canteen_menu',
+  'advance_canteen_sales',
+  'advance_canteen_inventory',
+  'advance_announcements',
+  'advance_messages',
+  'advance_conversations',
+  'advance_events',
+  'advance_leave_requests',
+  'advance_expenses',
+  'advance_settings',
+  'advance_activity_logs',
+  'advance_procurements',
+  'advance_invoices',
+  'advance_income',
+  'advance_budgets',
+  'advance_payslips',
+];
 
 export default function App() {
+  const [isSyncing, setIsSyncing] = useState(() => isFirebaseConfigured());
+
+  useEffect(() => {
+    if (!isSyncing) return;
+
+    let active = true;
+    async function performStartupSync() {
+      try {
+        await pullAndHydrateAll(DB_KEYS);
+      } catch (error) {
+        console.error('Failed to sync with remote database on startup:', error);
+      } finally {
+        if (active) {
+          setIsSyncing(false);
+        }
+      }
+    }
+    performStartupSync();
+
+    return () => {
+      active = false;
+    };
+  }, [isSyncing]);
+
+  if (isSyncing) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white p-6">
+        <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-6"></div>
+        <h1 className="text-2xl font-bold tracking-tight mb-2">Synchronizing Cloud Database</h1>
+        <p className="text-slate-400 max-w-sm text-center">
+          Retrieving school records from your free Firebase database. This will take just a moment...
+        </p>
+      </div>
+    );
+  }
+
   return (
     <>
     <Routes>
